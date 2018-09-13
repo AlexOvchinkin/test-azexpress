@@ -90,7 +90,7 @@ export class DocumentsGridComponent implements OnInit {
         if (this.formMode === OpenMode.new) {
           stream = this.addDocument(this.formGroup.value);
         } else {
-          if (options && options.id !== undefined) {
+          if (options && options.id) {
             stream = this.modifyDocument(this.formGroup.value, options.id)
           }
         }
@@ -104,7 +104,7 @@ export class DocumentsGridComponent implements OnInit {
         break;
 
       case 'delete':
-        if (options && options.id !== undefined) {
+        if (options && options.id) {
           this.documentsService.removeDocumentById(options.id)
             .subscribe(
               data => this.documents = data,
