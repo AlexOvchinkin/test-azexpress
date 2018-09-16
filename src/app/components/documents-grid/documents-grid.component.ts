@@ -56,7 +56,7 @@ export class DocumentsGridComponent implements OnInit {
 
   // функция удаления нескольких документов
   removeDocuments(selected: IDocument[]): void {
-    this.documentsService.removeDocuments(this.selectedRows);
+    this.documentsService.removeDocuments(selected);
   }
 
   // функция-обработчик добавления нового документа
@@ -65,7 +65,7 @@ export class DocumentsGridComponent implements OnInit {
   }
 
   // функция открывает форму для модификации документа
-  // @param ev.key: параметр, возвращенный DevExtrem,
+  // параметр ev.key, возвращенный DevExtrem,
   // в нем содержатся данные выделенной строки 
   editDocument(ev: any): void {
     ev.cancel = true;
