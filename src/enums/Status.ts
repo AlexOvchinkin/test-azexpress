@@ -1,10 +1,10 @@
-enum Status {
+const status: string[] = [
   'Создан',
   'Ожидает отправки',
   'Доставлено',
   'В пути',
   'Принят на склад',
   'Возвращен'
-}
+];
 
-export default Status;
+export default status;

@@ -1,61 +1,63 @@
 import { Injectable } from '@angular/core';
 import IDocument from '../../interfaces/IDocument';
 import documentsMock from '../../mocks/documents';
-import { of, Observable } from 'rxjs';
+import { Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DocumentsService {
 
-  _documents: IDocument[] = documentsMock;
+  documentsStream$$: Subject<IDocument[]> = new Subject<IDocument[]>();
+  documents: IDocument[] = documentsMock;
 
   constructor() { }
 
-  get documents(): Observable<IDocument[]> {
-    return of(this._documents);
+  loadAllDocuments(): void {
+    this.documentsStream$$.next(this.documents);
   }
 
 
-  removeDocuments(selected: IDocument[]): Observable<IDocument[]> {
-    this._documents = this._documents.filter(item => {
+  removeDocuments(selected: IDocument[]): void {
+    this.documents = this.documents.filter(item => {
       return !selected.includes(item)
     });
 
-    return this.documents;
+    this.documentsStream$$.next(this.documents);
   }
 
   
-  addDocument(doc: IDocument): Observable<IDocument[]> {
+  addDocument(doc: IDocument): void {
     // планируется, что на сервер будут передаваться
     // данные без id, при записи в БД id будет назначен
     doc.id = new Date().getTime(); // пока - уникальное число
-    this._documents.push(doc);
-    return this.documents;
+    this.documents.push(doc);
+    this.documentsStream$$.next(this.documents);
   }
 
 
-  modifyDocument(doc: IDocument): Observable<IDocument[]> {
-    const index = this._documents.findIndex((item: IDocument) => {
+  modifyDocument(doc: IDocument): void {
+    const index = this.documents.findIndex((item: IDocument) => {
       return item.id === doc.id;
     });
 
     if(index > -1) {
-      this._documents[index] = doc;
+      this.documents[index] = doc;
     }
     
-    return this.documents;
+    this.documentsStream$$.next(this.documents);
   }
 
-  removeDocumentById(id: number): Observable<IDocument[]> {
-    const index = this._documents.findIndex((item: IDocument) => {
+
+  removeDocumentById(id: number): void {
+    const index = this.documents.findIndex((item: IDocument) => {
       return item.id === id;
     });
 
     if(index > -1) {
-      this._documents.splice(index, 1);
+      this.documents.splice(index, 1);
     }
     
-    return this.documents;
+    this.documentsStream$$.next(this.documents);
   } 
 }

@@ -1,11 +1,11 @@
-<button class="btn btn-success mb-3" (click)="addHandler(content)">Создать накладную</button>
+<button class="btn btn-success mb-3" (click)="newDocument()">Создать накладную</button>
 <dx-data-grid 
   id="gridContainer" 
   [dataSource]="documents" 
   [showBorders]="true"
   [(selectedRowKeys)]="selectedRows"
-  (onEditingStart)="modifyHandler($event, content)"
-  (onRowRemoving)="removeHandler($event)">
+  (onEditingStart)="editDocument($event)"
+  (onRowRemoving)="removeDocument($event)">
 
   <dxo-editing 
     mode="row"
@@ -24,46 +24,5 @@
   <select class="custom-select grid__select">
     <option>Удалить</option>
   </select>
-  <button class="btn btn-success ml-3" (click)="applyHandler()">Применить</button>
+  <button class="btn btn-success ml-3" (click)="applyChanges()">Применить</button>
 </div>
-
-<ng-template #content let-modal>
-  <div class="modal-header">
-    <h4>Редактирование документа</h4>
-    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss('Cross click')">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-  <div class="modal-body">
-    <form [formGroup]="formGroup">
-      <div class="form-group">
-        <label for="from"><small>Откуда:</small></label>
-        <input type="text" class="form-control" id="from" placeholder="Откуда" formControlName="from">
-      </div>
-      <div class="form-group">
-        <label for="to"><small>Куда:</small></label>
-        <input type="text" class="form-control" id="to" placeholder="Куда" formControlName="to">
-      </div>
-      <div class="form-group">
-        <label for="customer"><small>Получатель:</small></label>
-        <input type="text" class="form-control" id="customer" placeholder="Получатель" formControlName="customer">
-      </div>
-      <div class="form-group d-flex flex-column">
-        <label for="status"><small>Статус:</small></label>
-        <select class="custom-select" 
-                id="status" 
-                formControlName="status"
-                (change)="formSelectOption($event.target.value)">
-          <option *ngFor="let option of options" 
-                  [value]="option">
-            {{option}}
-          </option>
-        </select>
-      </div>
-      <div class="form-group d-flex justify-content-between pt-3">
-        <button type="button" class="btn btn-success" (click)="modal.close('save')">Сохранить</button>
-        <button type="button" class="btn btn-danger" (click)="modal.close('delete')">Удалить</button>
-      </div>
-    </form>
-  </div>
-</ng-template>

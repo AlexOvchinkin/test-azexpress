@@ -1,11 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import IDocument from '../../../interfaces/IDocument';
 import { DocumentsService } from '../../services/documents.service';
-import { NgbModal, NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
-import Status from '../../../enums/Status';
-import { Observable } from 'rxjs';
 import OpenMode from '../../../enums/OpenMode';
+import { FormModalComponent } from '../form-modal/form-modal.component';
+import IFormCloseCause from '../../../interfaces/IFormCloseCause'
 
 @Component({
   selector: 'app-documents-grid',
@@ -20,15 +20,20 @@ export class DocumentsGridComponent implements OnInit {
   options: string[] = [];
   formMode: OpenMode = OpenMode.new;
 
+
   constructor(private documentsService: DocumentsService,
-    private modalService: NgbModal, public activeModal: NgbActiveModal, 
-    private fb: FormBuilder) { }
+    private modalService: NgbModal, private fb: FormBuilder) { }
+
 
   ngOnInit() {
+    // подписка на изменение состояния
+    this.documentsService.documentsStream$$
+      .subscribe(docs => this.documents = docs);
+
     this.initForm();
-    this.setOptions();
     this.loadDocuments();
   }
+
 
   initForm(): void {
     this.formGroup = this.fb.group({
@@ -39,134 +44,75 @@ export class DocumentsGridComponent implements OnInit {
     });
   }
 
-  setOptions(): void {
-    for (let option of Object.values(Status)) {
-      if (isNaN(Number(option))) {
-        this.options.push(option);
-      }
-    }
-  }
-
+  // функция загрузки всех документов
   loadDocuments(): void {
-    this.documentsService.documents
-      .subscribe(
-        data => this.documents = data,
-        err => console.log(err));
+    this.documentsService.loadAllDocuments();
   }
 
   // обработчик кнопки "Применить"
-  applyHandler(): void {
+  applyChanges(): void {
     this.removeDocuments(this.selectedRows);
   }
 
   // функция удаления нескольких документов
   removeDocuments(selected: IDocument[]): void {
-    this.documentsService.removeDocuments(this.selectedRows)
-      .subscribe(
-        data => this.documents = data,
-        err => console.log(err)
-      );
+    this.documentsService.removeDocuments(this.selectedRows);
   }
 
   // функция-обработчик добавления нового документа
-  addHandler(content) {
-    this.formMode = OpenMode.new;
+  newDocument(): void {
+    this.showForm(OpenMode.new);
+  }
 
-    this.modalService
-      .open(content)
-      .result
-      .then((result: string) => {
+  // функция открывает форму для модификации документа
+  // @param ev.key: параметр, возвращенный DevExtrem,
+  // в нем содержатся данные выделенной строки 
+  editDocument(ev: any): void {
+    ev.cancel = true;
+    this.showForm(OpenMode.modify, { data: ev.key });
+  }
+
+  // функция-обработчик удаления документа
+  removeDocument(ev: any): void {
+    ev.cancel = true;
+    this.documentsService.removeDocumentById(ev.key.id);
+  }
+
+  // функция открытия модальной формы
+  showForm(mode: OpenMode, opts?: any): void {
+    this.formMode = mode;
+
+    const modalRef = this.modalService.open(FormModalComponent);
+
+    if (this.formMode === OpenMode.modify) {
+      modalRef.componentInstance.document = opts.data;
+    }
+
+    modalRef.result
+      .then((result: IFormCloseCause) => {
         this.handleFormClosing(result);
       })
       .catch(err => console.log(err));
   }
 
-  // обработчик закрытия формы
-  handleFormClosing(closingStatus: string, options?: any): void {
-    switch (closingStatus) {
+  // функция обработки результата закрытия модальной формы
+  handleFormClosing(result: IFormCloseCause): void {
+    const closingCause = result.cause;
+
+    switch (closingCause) {
       case 'save':
-        let stream = new Observable<IDocument[]>();
-
         if (this.formMode === OpenMode.new) {
-          stream = this.addDocument(this.formGroup.value);
+          this.documentsService.addDocument(result.opts);
         } else {
-          if (options && options.id) {
-            stream = this.modifyDocument(this.formGroup.value, options.id)
-          }
+          this.documentsService.modifyDocument(result.opts)
         }
-
-        stream.subscribe(
-          data => this.documents = data,
-          err => console.log(err)
-        );
 
         this.formGroup.reset();
         break;
 
       case 'delete':
-        if (options && options.id) {
-          this.documentsService.removeDocumentById(options.id)
-            .subscribe(
-              data => this.documents = data,
-              err => console.log(err)
-            );
-        }
+        this.documentsService.removeDocumentById(result.opts.id)
         break;
     }
-  }
-
-  // функция инициирует добавление документа
-  addDocument(formValue: any): Observable<IDocument[]> {
-    const doc: IDocument = this.getDocumentFromFormValue(formValue);
-    return this.documentsService.addDocument(doc);
-  }
-
-  // функция инициирует модификацию документа
-  modifyDocument(formValue: any, id: number): Observable<IDocument[]> {
-    const doc: IDocument = this.getDocumentFromFormValue(formValue);
-    doc.id = id;
-
-    return this.documentsService.modifyDocument(doc);
-  }
-
-  // функция получает объект типа IDocument из значения формы
-  getDocumentFromFormValue(formValue: any): IDocument {
-    return {
-      from: formValue.from,
-      to: formValue.to,
-      customer: formValue.customer,
-      status: formValue.status
-    };
-  }
-
-  // функция открывает форму для модификации документа
-  modifyHandler(ev: any, content: any): void {
-    ev.cancel = true;
-
-    this.formMode = OpenMode.modify;
-    this.formGroup.patchValue(ev.key);
-
-    this.modalService
-      .open(content)
-      .result
-      .then((result: string) => {
-        this.handleFormClosing(result, { id: ev.key.id });
-      })
-      .catch(err => console.log(err));
-  }
-
-  // функция инициирует удаление документа
-  removeHandler(ev: any): void {
-    ev.cancel = true;
-
-    this.documentsService.removeDocumentById(ev.key.id)
-      .subscribe(
-        data => this.documents = data,
-        err => console.log(err)
-      );
-  }
-
-  formSelectOption(option: string): void {
-    this.formGroup.get('status').setValue(option);
   }
 }
